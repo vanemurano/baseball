@@ -18,13 +18,21 @@ class View(ft.UserControl):
         self._title = None
         self._txt_name = None
         self._txt_result = None
+        self._ddAnno = None
+        self._txtOutSquadre = None
+        self._btnCreaGrafo = None
+        self._ddSquadra = None
+        self._btnDettagli = None
+        self._btnPercorso = None
 
     def load_interface(self):
         # title
         self._title = ft.Text("TdP Baseball Manager 2026", color="blue", size=24)
         # self._page.controls.append(self._title)
 
-        self._ddAnno = ft.Dropdown(label="Anno", width=200, alignment=ft.alignment.top_left)
+        self._ddAnno = ft.Dropdown(label="Anno", width=200, alignment=ft.alignment.top_left,
+                                   on_change=self._controller.handleYearSelection)
+        self._controller.fillDDYears()
 
         row1 = ft.Row([ft.Container(self._title, width=500),
                        ft.Container(None, width=0),
