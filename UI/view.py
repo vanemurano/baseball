@@ -30,24 +30,25 @@ class View(ft.UserControl):
         self._title = ft.Text("TdP Baseball Manager 2026", color="blue", size=24)
         # self._page.controls.append(self._title)
 
-        self._ddAnno = ft.Dropdown(label="Anno", width=200, alignment=ft.alignment.top_left,
-                                   on_change=self._controller.handleYearSelection)
-        self._controller.fillDDYears()
+        self._txtInAnno = ft.TextField(label="Anno", width=200)
+        self._txtInSalario = ft.TextField(label="Salario ($M)", width=200)
 
         row1 = ft.Row([ft.Container(self._title, width=500),
                        ft.Container(None, width=0),
-                       ft.Container(self._ddAnno, width=250)], alignment=ft.MainAxisAlignment.CENTER)
+                       ft.Container(self._txtInAnno, width=250),
+                       ft.Container(self._txtInSalario, width=250)], alignment=ft.MainAxisAlignment.CENTER)
         self._txtOutSquadre = ft.ListView(expand=1, spacing=10, padding=20, auto_scroll=False)
         cont = ft.Container(self._txtOutSquadre, width=300, height= 200, alignment=ft.alignment.top_left, bgcolor="#deeded")
         self._btnCreaGrafo = ft.ElevatedButton(text="Crea Grafo", on_click=self._controller.handleCreaGrafo)
         row2 = ft.Row([cont, self._btnCreaGrafo], alignment=ft.MainAxisAlignment.CENTER, vertical_alignment=ft.CrossAxisAlignment.END)
 
-        self._ddSquadra = ft.Dropdown(label="Squadra")
-        self._btnDettagli = ft.ElevatedButton(text="Dettagli", on_click=self._controller.handleDettagli)
-        self._btnPercorso = ft.ElevatedButton(text="Percorso", on_click=self._controller.handlePercorso)
+        self._btnConnesse = ft.ElevatedButton(text="Calcola Connesse", on_click=self._controller.handleConnesse)
+        self._btnGradoMax = ft.ElevatedButton(text="Grado Massimo", on_click=self._controller.handleGradoMax)
+        self._btnDreamTeam = ft.ElevatedButton(text="Dream Team", on_click=self._controller.handleDreamTeam)
         row3 = ft.Row([ft.Container(self._ddSquadra, width=250),
-                       ft.Container(self._btnDettagli, width=250),
-                       ft.Container(self._btnPercorso, width=250)], alignment=ft.MainAxisAlignment.CENTER)
+                       ft.Container(self._btnConnesse, width=250),
+                       ft.Container(self._btnGradoMax, width=250),
+                       ft.Container(self._btnDreamTeam, width=250)], alignment=ft.MainAxisAlignment.CENTER)
 
         self._page.controls.append(row1)
         self._page.controls.append(row2)

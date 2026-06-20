@@ -1,4 +1,5 @@
 from database.DB_connect import DBConnect
+from model.player import Player
 from model.team import Team
 
 
@@ -9,69 +10,98 @@ class DAO():
     @staticmethod
     def getAllYears():
 
-        conn=DBConnect.get_connection()
-        cursor=conn.cursor(dictionary=True)
+        try:
+            conn=DBConnect.get_connection()
+            cursor=conn.cursor(dictionary=True)
+        except ConnectionError:
+            print("Errore di connessione")
+            return
 
-        res=[]
-        query="""select distinct(year)
-                from teams 
-                where year>=1980"""
-
+        result=[]
+        query="""select distinct year 
+                from teams"""
         cursor.execute(query,)
 
         for row in cursor:
-            res.append(row["year"])
+            result.append(int(row["year"]))
 
         cursor.close()
         conn.close()
 
-        return res
+        return result
 
     @staticmethod
-    def getTeamsOfYear(year):
+    def getAllPlayers():
 
-        conn=DBConnect.get_connection()
-        cursor=conn.cursor(dictionary=True)
+        try:
+            conn=DBConnect.get_connection()
+            cursor=conn.cursor(dictionary=True)
+        except ConnectionError:
+            print("Errore di connessione")
+            return
 
-        res=[]
-        query="""select *
-            from teams 
-            where year=%s"""
-
-        cursor.execute(query, (year,))
+        result=[]
+        query="""select * 
+                from people"""
+        cursor.execute(query,)
 
         for row in cursor:
-            res.append(Team(**row))
+            result.append(Player(**row))
 
         cursor.close()
         conn.close()
 
-        return res
+        return result
 
     @staticmethod
-    def getSalariesTeam(year, idMapTeams):
+    def getAllNodes(year, salary, idMap):
 
-        conn=DBConnect.get_connection()
-        cursor=conn.cursor(dictionary=True)
+        try:
+            conn=DBConnect.get_connection()
+            cursor=conn.cursor(dictionary=True)
+        except ConnectionError:
+            print("Errore di connessione")
+            return
 
-        res=[]
-        query="""select t.ID, sum(s.salary) as totSalary
-                from salaries s, teams t, appearances a 
-                where s.year=t.year and t.year=a.year and a.year=%s
-                and t.ID=a.teamID and a.playerID=s.playerID 
-                group by t.ID"""
+        result=[]
+        query="""select s.playerID as id
+                    from salaries s 
+                    where s.year=%s and s.salary>%s"""
+        cursor.execute(query, (year, salary,))
 
-        cursor.execute(query, (year,))
-
-        mapSalary={}
         for row in cursor:
-            #riempiamo il dizionario
-            mapSalary[idMapTeams[row["ID"]]]=row["totSalary"]
-            #ad ogni team associa il salario (prende l'oggetto team dal dizionario esterno)
+            result.append(idMap[row["id"]])
 
         cursor.close()
         conn.close()
 
-        return mapSalary
+        return result # lista di oggetti player
 
+    @staticmethod
+    def getAllEdges(year, salary, idMap):
 
+        try:
+            conn = DBConnect.get_connection()
+            cursor = conn.cursor(dictionary=True)
+        except ConnectionError:
+            print("Errore di connessione")
+            return
+
+        result = []
+        query = """with tabnodi as (select a.playerID as id, a.teamId as team
+                            from appearances a 
+                            join salaries s on a.playerID=s.playerID and a.year=s.year
+                            where a.year=%s and s.salary>%s)
+                    select distinct t1.id as id1, t2.id as id2 
+                    from tabnodi t1
+                    join tabnodi t2 on t1.team=t2.team
+                    where t1.id<t2.id"""
+        cursor.execute(query, (year, salary,))
+
+        for row in cursor:
+            result.append((idMap[row["id1"]], idMap[row["id2"]])) # tuple player, player
+
+        cursor.close()
+        conn.close()
+
+        return result
