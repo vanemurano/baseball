@@ -8,6 +8,7 @@ class Controller:
         # the model, which implements the logic of the program and holds the data
         self._model = model
         self._choiceTeam = None
+        self._year=None
 
     def handleCreaGrafo(self, e):
         self._view._txt_result.controls.clear()
@@ -38,6 +39,7 @@ class Controller:
             )
             self._view.update_page()
             return
+        self._year=anno
         self._model.creaGrafo(anno, salarioM)
         self._view._txt_result.controls.append(
             ft.Text(f"Grafo creato\n"
@@ -75,4 +77,18 @@ class Controller:
         self._view.update_page()
 
     def handleDreamTeam(self, e):
-        pass
+        if not self._model.getNNodi(): # se il grafo è vuoto
+            self._view._txt_result.controls.append(
+                ft.Text(f"Creare prima il grafo!", color="red")
+            )
+            self._view.update_page()
+            return
+        team, salario = self._model.dreamTeam(self._year)
+        self._view._txt_result.controls.append(
+            ft.Text(f"Ecco il dream team trovato, composto da {len(team)} giocatori, "
+                    f"con un salario totale di {salario}$")
+        )
+        for p in team:
+            self._view._txt_result.controls.append(
+                ft.Text(p))
+        self._view.update_page()

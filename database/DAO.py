@@ -105,3 +105,27 @@ class DAO():
         conn.close()
 
         return result
+
+    @staticmethod
+    def getPlayersWSalary(year):
+
+        try:
+            conn = DBConnect.get_connection()
+            cursor = conn.cursor(dictionary=True)
+        except ConnectionError:
+            print("Errore di connessione")
+            return
+
+        result = []
+        query = """select distinct playerID, salary
+                    from salaries 
+                    where year=%s"""
+        cursor.execute(query, (year,))
+
+        for row in cursor:
+            result.append((row["playerID"], float(row["salary"])))  # tuple player, salario
+
+        cursor.close()
+        conn.close()
+
+        return result
