@@ -9,73 +9,85 @@ from database.DAO import DAO
 
 class Model:
     def __init__(self):
-        self._graph=nx.Graph() # semplice, non pesato e non orientato
         self._nodes=[]
+        self._graph=nx.DiGraph() # semplice, pesato e orientato
         self._idMapPlayers={}
         for p in DAO.getAllPlayers():
-            self._idMapPlayers[p.playerID]=p
-        self._dreamTeam=[]
-        self._bestSalary=0
+            self._idMapPlayers[p.PlayerID]=p
+        self._topPlayer=None
+        self._dreamTeam = []
+        self._bestScore = 0
 
-    def getAllYears(self):
-        return DAO.getAllYears()
-
-    def getAllPlayers(self):
-        return DAO.getAllPlayers()
-
-    def creaGrafo(self, year, salaryM):
+    def buildGraph(self, x: float):
+        self._nodes=[]
         self._graph.clear()
-        salary=1000000*salaryM
-        self._nodes=DAO.getAllNodes(year, salary, self._idMapPlayers)
+        for p in DAO.getAllNodes(x):
+            self._nodes.append(self._idMapPlayers[p])
         self._graph.add_nodes_from(self._nodes)
-        for p1, p2 in DAO.getAllEdges(year, salary, self._idMapPlayers):
-            if p1 in self._nodes and p2 in self._nodes:
-                self._graph.add_edge(p1, p2)
+        for p1, p2, t1, t2 in DAO.getEdges(x, self._idMapPlayers):
+            peso=abs(t1-t2)
+            if t1>t2:
+                self._graph.add_edge(p1, p2, weight=peso)
+            if t1<t2:
+                self._graph.add_edge(p2, p1, weight=peso)
 
-    def nodoMaxGrado(self):
-        max_nodo=max(self._graph.nodes, key=self._graph.degree)
-        grado=self._graph.degree(max_nodo)
-        return max_nodo, grado
+    def getTopPlayer(self):
+        self._topPlayer=None
+        lista=[]
+        for n in self._nodes:
+            lista.append((n, self._graph.out_degree(n)))
+        lista.sort(key=lambda x: x[1], reverse=True)
+        self._topPlayer = lista[0][0]
+        return self._topPlayer
 
-    def controlloAnni(self, anno):
-        if anno in DAO.getAllYears():
-            return True
-        else:
-            return False
+    def getAvversari(self):
+        lista=[]
+        for p in self._graph.successors(self._topPlayer):
+            lista.append((p, self._graph[self._topPlayer][p]["weight"]))
+        lista.sort(key=lambda x: x[1], reverse=True)
+        return lista
 
-    def getNNodi(self):
+    def dreamTeam(self, k):
+        self._dreamTeam=[]
+        self._bestScore=0
+        parziale=[]
+        for player in self._nodes:
+            parziale.append(player)
+            self._ricorsione(parziale, k, self._calcolaScore(player))
+            parziale.pop()
+        return self._dreamTeam, self._bestScore
+
+    def _ricorsione(self, parziale, k, score):
+        # condizione terminale
+        if len(parziale)==k:
+            # condizione di ottimalità (controllo alla fine perché score può diminuire aggiungendo giocatori)
+            if score > self._bestScore:
+                self._bestScore = score
+                self._dreamTeam = copy.deepcopy(parziale)
+            return
+        # condizione ricorsiva
+        for n in self._nodes:
+            valido=True
+            for nodo in parziale:
+                if n in nx.descendants(self._graph, nodo) or n in parziale:
+                    # cioè se è raggiungibile partendo dai nodi già presenti
+                    valido=False
+            if valido: # se possiamo aggiungerlo
+                parziale.append(n)
+                self._ricorsione(parziale, k, score+self._calcolaScore(n))
+                parziale.pop() # backtracking
+
+    def _calcolaScore(self, nodo):
+        totOut=0
+        totIn=0
+        for s in self._graph.successors(nodo):
+            totOut+=self._graph[nodo][s]["weight"]
+        for p in self._graph.predecessors(nodo):
+            totIn+=self._graph[p][nodo]["weight"]
+        return totOut-totIn
+
+    def getNNodes(self):
         return len(self._nodes)
 
-    def getNArchi(self):
+    def getNEdges(self):
         return len(self._graph.edges)
-
-    def getNConnesse(self):
-        return nx.number_connected_components(self._graph)
-
-    # seconda parte: giocatori NON collegati da archi
-
-    def dreamTeam(self, year):
-        # creiamo dizionario player/salario
-        players=DAO.getPlayersWSalary(year)
-        self._mapSalary={}
-        for pID, s in players:
-            self._mapSalary[self._idMapPlayers[pID]]=s
-        parziale=[]
-        self._ricorsione(parziale, 0, self._nodes)
-        return self._dreamTeam, self._bestSalary
-
-    def _ricorsione(self, parziale, salario, rimanenti): # l'indice di dove sono arrivata nella lista di nodi
-        if not rimanenti: # se non sono rimasti giocatori da aggiungere al team
-            if salario>self._bestSalary:
-                self._bestSalary=salario
-                self._dreamTeam=copy.deepcopy(parziale)
-                return
-        for i in range(len(rimanenti)):
-            nodo = rimanenti[i]
-            parziale.append(nodo)
-            nuovi_candidati = []
-            for n in rimanenti[i+1:]:
-                if not self._graph.has_edge(nodo, n):
-                    nuovi_candidati.append(n)
-            self._ricorsione(parziale, salario + self._mapSalary[nodo], nuovi_candidati)
-            parziale.pop()  # backtracking

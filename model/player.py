@@ -1,30 +1,17 @@
 from dataclasses import dataclass
-from datetime import datetime
 
 
 @dataclass
 class Player():
-    playerID: str
-    birthCountry: str
-    birthCity: str
-    deathCountry: str
-    deathCity: str
-    nameFirst: str
-    nameLast: str
-    weight: int
-    height: int
-    bats: str
-    throws: str
-    birth_date: datetime
-    debut_date: datetime
-    finalgame_date: datetime
-    death_date: datetime
+
+    PlayerID: int
+    Name: str
 
     def __hash__(self):
-        return hash(self.playerID)
+        return hash(self.PlayerID)
 
     def __eq__(self, other):
-        return self.playerID==other.playerID
+        return self.PlayerID==other.PlayerID
 
     def __str__(self):
-        return f"playerID = {self.playerID}, nome = {self.nameFirst}, cognome = {self.nameLast}"
+        return f"{self.PlayerID} {self.Name}"

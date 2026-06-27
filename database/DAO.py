@@ -1,6 +1,5 @@
 from database.DB_connect import DBConnect
 from model.player import Player
-from model.team import Team
 
 
 class DAO():
@@ -8,53 +7,32 @@ class DAO():
         pass
 
     @staticmethod
-    def getAllYears():
-
-        try:
-            conn=DBConnect.get_connection()
-            cursor=conn.cursor(dictionary=True)
-        except ConnectionError:
-            print("Errore di connessione")
-            return
-
-        result=[]
-        query="""select distinct year 
-                from teams"""
-        cursor.execute(query,)
-
-        for row in cursor:
-            result.append(int(row["year"]))
-
-        cursor.close()
-        conn.close()
-
-        return result
-
-    @staticmethod
     def getAllPlayers():
 
         try:
-            conn=DBConnect.get_connection()
-            cursor=conn.cursor(dictionary=True)
+            conn = DBConnect.get_connection()
+            cursor = conn.cursor(dictionary=True)
         except ConnectionError:
             print("Errore di connessione")
             return
 
-        result=[]
-        query="""select * 
-                from people"""
+        query = """select *
+                from players"""
+
+        res = []
+
         cursor.execute(query,)
 
         for row in cursor:
-            result.append(Player(**row))
+            res.append(Player(**row))
 
         cursor.close()
         conn.close()
 
-        return result
+        return res
 
     @staticmethod
-    def getAllNodes(year, salary, idMap):
+    def getAllNodes(x: float):
 
         try:
             conn=DBConnect.get_connection()
@@ -63,22 +41,25 @@ class DAO():
             print("Errore di connessione")
             return
 
-        result=[]
-        query="""select s.playerID as id
-                    from salaries s 
-                    where s.year=%s and s.salary>%s"""
-        cursor.execute(query, (year, salary,))
+        query="""select PlayerID, avg(Goals) as media
+                    from actions
+                    group by PlayerID 
+                    having media>%s"""
+
+        res=[]
+
+        cursor.execute(query, (x,))
 
         for row in cursor:
-            result.append(idMap[row["id"]])
+            res.append(row["PlayerID"])
 
         cursor.close()
         conn.close()
 
-        return result # lista di oggetti player
+        return res
 
     @staticmethod
-    def getAllEdges(year, salary, idMap):
+    def getEdges(x: float, idMapP: dict):
 
         try:
             conn = DBConnect.get_connection()
@@ -87,27 +68,34 @@ class DAO():
             print("Errore di connessione")
             return
 
-        result = []
-        query = """with tabnodi as (select a.playerID as id, a.teamId as team
-                            from appearances a 
-                            join salaries s on a.playerID=s.playerID and a.year=s.year
-                            where a.year=%s and s.salary>%s)
-                    select distinct t1.id as id1, t2.id as id2 
-                    from tabnodi t1
-                    join tabnodi t2 on t1.team=t2.team
-                    where t1.id<t2.id"""
-        cursor.execute(query, (year, salary,))
+        query = """with tabNodi as (select PlayerID, avg(Goals) as media
+                                    from actions
+                                    group by PlayerID 
+                                    having media>%s)
+                    select a1.PlayerID as id1, a2.PlayerID as id2, sum(a1.TimePlayed) as t1, sum(a2.TimePlayed) as t2
+                    from actions a1, actions a2, tabNodi t1, tabNodi t2
+                    where a1.PlayerID=t1.PlayerID and a2.PlayerID=t2.PlayerID
+                    and a1.MatchID=a2.MatchID 
+                    and a1.PlayerID>a2.PlayerID
+                    and a1.Starts=1 and a2.Starts=1
+                    and a1.TeamID!=a2.TeamID
+                    group by id1, id2
+                    having t1!=t2"""
+
+        res = []
+
+        cursor.execute(query, (x,))
 
         for row in cursor:
-            result.append((idMap[row["id1"]], idMap[row["id2"]])) # tuple player, player
+            res.append((idMapP[row["id1"]], idMapP[row["id2"]], int(row["t1"]), int(row["t2"])))
 
         cursor.close()
         conn.close()
 
-        return result
+        return res # tuple player1, player2, tempo1, tempo2
 
     @staticmethod
-    def getPlayersWSalary(year):
+    def getTime(p_id1: int, p_id2: int):
 
         try:
             conn = DBConnect.get_connection()
@@ -116,16 +104,19 @@ class DAO():
             print("Errore di connessione")
             return
 
-        result = []
-        query = """select distinct playerID, salary
-                    from salaries 
-                    where year=%s"""
-        cursor.execute(query, (year,))
+        query = """select sum(a1.TimePlayed) as t1, sum(a2.TimePlayed) as t2
+                    from actions a1, actions a2
+                    where a1.MatchID=a2.MatchID
+                    and a1.PlayerID=%s and a2.PlayerID=%s"""
+
+        res = []
+
+        cursor.execute(query, (p_id1, p_id2,))
 
         for row in cursor:
-            result.append((row["playerID"], float(row["salary"])))  # tuple player, salario
+            res.append((int(row["t1"]), int(row["t2"])))
 
         cursor.close()
         conn.close()
 
-        return result
+        return res

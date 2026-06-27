@@ -7,88 +7,87 @@ class Controller:
         self._view = view
         # the model, which implements the logic of the program and holds the data
         self._model = model
-        self._choiceTeam = None
-        self._year=None
 
     def handleCreaGrafo(self, e):
         self._view._txt_result.controls.clear()
-        if self._view._txtInAnno.value=="":
+        x=self._view._txtInGoal.value
+        if x=="":
             self._view._txt_result.controls.append(
-                ft.Text(f"Inserire prima un anno!", color="red")
-            )
-            self._view.update_page()
-            return
-        if self._view._txtInSalario.value=="":
-            self._view._txt_result.controls.append(
-                ft.Text(f"Inserire prima un salario!", color="red")
+                ft.Text("Inserire numero minimo di goal!", color="red")
             )
             self._view.update_page()
             return
         try:
-            anno=int(self._view._txtInAnno.value)
-            salarioM=int(self._view._txtInSalario.value)
+            floatX=float(x)
         except ValueError:
             self._view._txt_result.controls.append(
-                ft.Text(f"Anno e salario devono essere numeri interi!", color="red")
+                ft.Text("Il numero di goal deve essere un decimale positivo!", color="red")
             )
             self._view.update_page()
             return
-        if not self._model.controlloAnni(anno):
+        if floatX<0:
             self._view._txt_result.controls.append(
-                ft.Text(f"Inserire anno compreso tra 1871 e 2019", color="red")
+                ft.Text("Il numero di goal deve essere un decimale positivo!", color="red")
             )
             self._view.update_page()
             return
-        self._year=anno
-        self._model.creaGrafo(anno, salarioM)
+        self._model.buildGraph(floatX)
         self._view._txt_result.controls.append(
-            ft.Text(f"Grafo creato\n"
-                    f"Ci sono {self._model.getNNodi()} nodi\n"
-                    f"Ci sono {self._model.getNArchi()} archi")
+            ft.Text(f"Grafo creato, con {self._model.getNNodes()} vertici e {self._model.getNEdges()} archi")
         )
         self._view.update_page()
 
-    def handleConnesse(self, e):
-        if not self._model.getNNodi():
+    def handleTopPlayer(self, e):
+        if self._model.getNNodes()==0:
             self._view._txt_result.controls.append(
-                ft.Text(f"Creare prima il grafo!", color="red")
+                ft.Text("Creare prima il grafo!", color="red")
             )
             self._view.update_page()
             return
         self._view._txt_result.controls.append(
-            ft.Text(f"Ci sono {self._model.getNConnesse()} componenti connesse")
+            ft.Text(f"Top player: {self._model.getTopPlayer()}\n"
+                    f"Avversari battuti:")
         )
-        self._view.update_page()
-
-    def handleGradoMax(self, e):
-        self._view._txt_result.controls.clear()
-        if not self._model.getNNodi():
+        for avv, peso in self._model.getAvversari():
             self._view._txt_result.controls.append(
-                ft.Text(f"Creare prima il grafo!", color="red")
+                ft.Text(f"{avv} | {peso}")
             )
-            self._view.update_page()
-            return
-        nodo, grado=self._model.nodoMaxGrado()
-        self._view._txt_result.controls.append(
-            ft.Text(f"Nodo di grado max:\n"
-                    f"{nodo}\n"
-                    f"Grado: {grado}")
-        )
         self._view.update_page()
 
     def handleDreamTeam(self, e):
-        if not self._model.getNNodi(): # se il grafo è vuoto
+        if self._model.getNNodes() == 0:
             self._view._txt_result.controls.append(
-                ft.Text(f"Creare prima il grafo!", color="red")
+                ft.Text("Creare prima il grafo!", color="red")
             )
             self._view.update_page()
             return
-        team, salario = self._model.dreamTeam(self._year)
-        self._view._txt_result.controls.append(
-            ft.Text(f"Ecco il dream team trovato, composto da {len(team)} giocatori, "
-                    f"con un salario totale di {salario}$")
-        )
-        for p in team:
+        k = self._view._txtInK.value
+        if k == "":
             self._view._txt_result.controls.append(
-                ft.Text(p))
+                ft.Text("Inserire numero di giocatori!", color="red")
+            )
+            self._view.update_page()
+            return
+        try:
+            intK = float(k)
+        except ValueError:
+            self._view._txt_result.controls.append(
+                ft.Text("Il numero deve essere un intero positivo!", color="red")
+            )
+            self._view.update_page()
+            return
+        if intK < 0:
+            self._view._txt_result.controls.append(
+                ft.Text("Il numero deve essere un intero positivo!", color="red")
+            )
+            self._view.update_page()
+            return
+        team, gradoOtt=self._model.dreamTeam(intK)
+        self._view._txt_result.controls.append(
+            ft.Text(f"Dream team (grado di ottimalità {gradoOtt}):")
+        )
+        for player in team:
+            self._view._txt_result.controls.append(
+                ft.Text(player)
+            )
         self._view.update_page()
